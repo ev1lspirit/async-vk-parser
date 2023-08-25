@@ -107,7 +107,7 @@ class AsyncServer:
 
 
 if __name__ == "__main__":
-    server = AsyncServer(ip="192.168.196.199", port=9090)
+    server = AsyncServer(ip="localhost", port=24488)
     asyncio.run(server.accept_connection())
 
 
