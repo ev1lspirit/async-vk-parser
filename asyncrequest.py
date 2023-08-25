@@ -1,5 +1,6 @@
 import ast
 import asyncio
+import os
 import typing as tp
 from json import JSONDecodeError
 from typing import NamedTuple
@@ -7,7 +8,7 @@ import aiohttp
 
 
 class API(NamedTuple):
-    ACCESS_TOKEN = "vk1.a.3AlbFkqtjzuvsJOP9DByXeDPK35_c8TCUtDkwtAPUKJ0g5OIPyMYgkVLPynwkQSwYlaGUABsbiGntj3ocCxCgtCL2zSLrXsCynyglTxHiibIw2VSGMeTbC7xCJMDveJss6NF64AcKJs35snASL_CojW4Ctqul-t5lGtCgPckL7HQWaydtX0JlVj15E__pxPmiJXJ1sBHaVNRF7ne4ioECA"
+    ACCESS_TOKEN = os.getenv("TOKEN")
     VERSION = 5.131
 
 
