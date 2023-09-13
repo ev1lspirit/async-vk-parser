@@ -1,6 +1,6 @@
-import dataclasses
 import enum
 import re
+
 from config import (
     CommandType,
     FriendsAPI,
@@ -14,25 +14,13 @@ from exceptions import (
 )
 from asyncrequest import AsyncRequest
 from representation_functions import StaticResponse
+from vk_parser.pydantic_models import Profile, Photo, EntityType
 
 
 class ErrorCode(enum.Enum):
     EMPTY_COMMAND = 0x1
     COMMAND_NOT_FOUND = 0x2
     INCORRECT_COMMAND = 0x3
-
-
-@dataclasses.dataclass
-class CommandHandlingError:
-    error_code: int
-    error_message: str
-
-    @property
-    def json(self):
-        return {
-            "error": True,
-            "code": self.error_code,
-            "message": self.error_message}
 
 
 class Commands(tp.NamedTuple):
@@ -99,7 +87,72 @@ async def execute_command(message: str) -> dict:
         coroutine = message_map[command_head]
         request = AsyncRequest(coroutine(command_args))
         result = await request.run()
-        #print(result)
-        # print(result)
 
     return result
+
+
+class BirthDate(tp.NamedTuple):
+    day: int
+    month: int
+    year: tp.Optional[int] = None
+
+
+class BaseDataTransformer:
+    def __init__(self, *, iterable: tp.Iterable[EntityType]):
+        self.iterable = iterable
+
+    @property
+    def iterable(self):
+        return self._iterable
+
+    @iterable.setter
+    def iterable(self, iterable):
+        if not iterable:
+            raise ValueError('Empty iterable')
+
+        for element in iterable:
+            if not isinstance(element, (Profile, Photo)):
+                raise ValueError(f"Expected Iterable[EntityType], got {type(element).__name__} instead")
+        self._iterable = iterable
+
+
+class ProfileTransformedList(BaseDataTransformer):
+
+    @BaseDataTransformer.iterable.setter
+    def iterable(self, iterable):
+        method_list = filter(lambda func:
+                             callable(getattr(self, func)) and not func.startswith("__"), dir(self))
+        for method in method_list:
+            getattr(self, method)(iterable)
+        super(ProfileTransformedList, ProfileTransformedList).iterable.__set__(self, iterable)
+
+    def __iter__(self):
+        yield from self.iterable
+
+    @staticmethod
+    def _parse_birth_date(target_list: list[Profile]):
+        pattern = re.compile(r"^(\d{1,2})[.-](\d{1,2})[.-](\d\d\d\d)$")
+
+        for profile in filter(lambda user: user.bdate is not None, target_list):
+            result = pattern.search(profile.bdate)
+            if result:
+               profile.bdate = BirthDate(*(int(value) for value in result.groups()))
+            else:
+               profile.bdate = BirthDate(*(int(value) for value in re.split(r'[\.-]', profile.bdate)))
+
+    @staticmethod
+    def _parse_platform(target_list: list[Profile]):
+        platforms = {
+            1: "VK Mobile version",
+            2: "Apple iPhone",
+            3: "Apple iPad",
+            4: "Android",
+            5: "Windows Phone",
+            6: "Windows 10",
+            7: "PC Web version"
+        }
+        for profile in filter(lambda user: user.last_seen and user.last_seen.platform, target_list):
+            profile.last_seen.platform = platforms.get(profile.last_seen.platform, None)
+
+
+

@@ -1,12 +1,11 @@
 import pydantic as pd
 import typing as tp
 
-# ResponseType = tp.TypeVar('ResponseType', Friends)
-
 
 class APIError(pd.BaseModel):
     error_code: int
     error_msg: str
+    details: tp.Optional[str] = None
 
     @property
     def error_json(self):
@@ -16,6 +15,20 @@ class APIError(pd.BaseModel):
 class City(pd.BaseModel):
     id: int
     title: str
+
+
+class Photo(pd.BaseModel):
+    album_id: int
+    date: int
+    id: int
+    owner_id: int
+    post_id: int = None
+    text: tp.Optional[str] = None
+    tags_count: tp.Optional[int] = None
+
+
+class Photos(pd.BaseModel):
+    items: tp.List[Photo]
 
 
 class Occupation(pd.BaseModel):
@@ -34,18 +47,25 @@ class University(pd.BaseModel):
     faculty_name: str = None
     graduation: int = None
     name: str = None
+    valid_record = True
+
+
+class LastSeenEntity(pd.BaseModel):
+    time: tp.Optional[int]
+    platform: tp.Optional[int] = None
 
 
 class Profile(pd.BaseModel):
     id: int
     first_name: str
     last_name: str
+    last_seen: LastSeenEntity = None
     bdate: str = None
     city: City = None
     mobile_phone: str = None
     sex: int = None
-    universities: tp.List[University] = None
-    occupation: Occupation = None
+    universities: tp.List[University] = []
+    occupation: tp.Optional[Occupation] = None
     platform: str = None
     about: str = None
     deactivated: str = None
@@ -53,9 +73,12 @@ class Profile(pd.BaseModel):
 
 
 class Friends(pd.BaseModel):
-    items: tp.List[Profile]
+    items: list[Profile]
+
+
+EntityType = tp.TypeVar("EntityType", Friends, Photos)
 
 
 class Response(pd.BaseModel):
-    response: Friends = None
-    error: APIError = None
+    response: tp.Optional[EntityType] = None
+    error: tp.Optional[APIError] = None

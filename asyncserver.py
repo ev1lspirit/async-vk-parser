@@ -1,5 +1,4 @@
 import dataclasses
-
 from vk_parser import vk_parser
 from service_functions import execute_command
 from representation_functions import StaticResponse
